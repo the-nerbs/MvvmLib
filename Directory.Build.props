@@ -1,0 +1,17 @@
+﻿<Project>
+  <PropertyGroup>
+    <RootDir>$(MSBuildThisFileDirectory)</RootDir>
+    <BuildToolsDir>$([MSBuild]::NormalizeDirectory('$(RootDir)', 'build'))</BuildToolsDir>
+
+    <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+
+    <IsTestProject>false</IsTestProject>
+    <IsTestProject Condition="$(MSBuildProjectName.EndsWith('.UnitTests')) or $(MSBuildProjectName.EndsWith('.Tests'))">true</IsTestProject>
+  </PropertyGroup>
+
+  <Import Project="$([MSBuild]::NormalizePath('$(BuildToolsDir)', 'dir.props'))"/>
+
+  <Import Condition="exists($([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(MSBuildProjectName).csproj')))"
+          Project="$([MSBuild]::NormalizePath('$(BuildToolsDir)', 'csharp.props'))" />
+</Project>

@@ -1,0 +1,41 @@
+<Project>
+  <PropertyGroup>
+    <!-- Note: this is needed to run tests when building with multiple target frameworks -->
+    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+    
+    <!-- latest language spec, strict conformance -->
+    <LangVersion>latest</LangVersion>
+    <Features>strict</Features>
+
+    <!-- same inputs => same outputs -->
+    <Deterministic>true</Deterministic>
+    <!--<PathMap>$(RootDir)=\build\</PathMap>-->
+
+    <!-- treat all compiler warnings as errors -->
+    <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+
+    <!-- intermediate output path -->
+    <BaseIntermediateOutputPath>$(ArtifactsObjDir)$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <IntermediateOutputPath>$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
+
+    <!-- actual output path -->
+    <BaseOutputPath>$(ArtifactsBinDir)</BaseOutputPath>
+    <OutputPath>$(BaseOutputPath)$(Configuration)\</OutputPath>
+
+    <!-- XML doc file (for non-test projects) -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GenerateDocumentationFile Condition="'$(IsTestProject)' == 'true'">false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+  </PropertyGroup>
+</Project>
