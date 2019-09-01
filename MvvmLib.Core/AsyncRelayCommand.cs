@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -14,12 +15,36 @@ namespace MvvmLib
     {
         private readonly Func<Task> _execute;
         private readonly Func<bool> _canExecute;
+        private TaskExecution _execution;
 
 
         /// <summary>
         /// Occurs when changes occur that affect whether or not the command should execute.
         /// </summary>
         public event EventHandler CanExecuteChanged;
+
+        /// <summary>
+        /// Occurs when a property value changes.
+        /// </summary>
+        public event PropertyChangedEventHandler PropertyChanged;
+
+
+        /// <summary>
+        /// Gets the current or most recent execution of the task.
+        /// </summary>
+        /// <remarks>
+        /// If the command has not yet been executed, this property will return null. Once the
+        /// command has been executed, this will not be null.
+        /// </remarks>
+        public TaskExecution Execution
+        {
+            get { return _execution; }
+            private set
+            {
+                _execution = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Execution)));
+            }
+        }
 
 
         /// <summary>
@@ -60,9 +85,9 @@ namespace MvvmLib
         /// <summary>
         /// Executes this command synchronously.
         /// </summary>
-        public void Execute()
+        public async void Execute()
         {
-            ExecuteAsync().Wait();
+            await ExecuteAsync();
         }
 
         /// <summary>
@@ -71,7 +96,9 @@ namespace MvvmLib
         /// <returns>A task that represents the asynchronous command execution.</returns>
         public Task ExecuteAsync()
         {
-            return _execute();
+            Task t = _execute();
+            Execution = new TaskExecution(t);
+            return t;
         }
 
 
