@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net461</TargetFramework>
+    <Description>Provides some utilities for MVVM applications. This package provides ViewModel types that are compatible with The MvvmLight library.</Description>
+    <PackageTags>$(PackageTags);mvvmlight</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

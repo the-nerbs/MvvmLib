@@ -1,3 +1,7 @@
 ﻿<Project>
   <Import Project="$([MSBuild]::NormalizePath('$(BuildToolsDir)', 'GenerateInternalsVisibleTo.targets'))"/>
+
+  <PropertyGroup>
+    <GeneratePackageOnBuild Condition="'$(IsPackable)' != 'false'">true</GeneratePackageOnBuild>
+  </PropertyGroup>
 </Project>

@@ -24,6 +24,9 @@
     <BaseOutputPath>$(ArtifactsBinDir)</BaseOutputPath>
     <OutputPath>$(BaseOutputPath)$(Configuration)\</OutputPath>
 
+    <!-- nuget package output path -->
+    <PackageOutputPath>$(ArtifactsPackagesDir)</PackageOutputPath>
+    
     <!-- XML doc file (for non-test projects) -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GenerateDocumentationFile Condition="'$(IsTestProject)' == 'true'">false</GenerateDocumentationFile>

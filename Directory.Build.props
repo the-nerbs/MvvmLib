@@ -14,4 +14,7 @@
 
   <Import Condition="exists($([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(MSBuildProjectName).csproj')))"
           Project="$([MSBuild]::NormalizePath('$(BuildToolsDir)', 'csharp.props'))" />
+
+  <Import Condition="'$(IsPackable)' != 'false' and '$(IsTestProject)' == 'false'"
+          Project="$([MSBuild]::NormalizePath('$(BuildToolsDir)', 'nupkg.props'))" />
 </Project>

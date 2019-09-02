@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
+    <Description>Provides some utilities for MVVM applications. This package contains class that can be used without external dependencies.</Description>
   </PropertyGroup>
 
   <ItemGroup>

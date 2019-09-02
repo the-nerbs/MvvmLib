@@ -1,12 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
     <RootNamespace>MvvmLib</RootNamespace>
+    <Description>Provides some utilities for MVVM applications. This is the core library supporting the MvvmLib and MvvmLib.MvvmLight packages.</Description>
   </PropertyGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="MvvmLib"/>
-    <InternalsVisibleTo Include="MvvmLib.MvvmLight"/>
-  </ItemGroup>
 </Project>

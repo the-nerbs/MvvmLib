@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <Authors>the-nerbs</Authors>
+    <Company>the-nerbs</Company>
+    <Copyright>Copyright (c) the-nerbs 2019</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>dotnet;c#;wpf;mvvm</PackageTags>
+  </PropertyGroup>
+</Project>
