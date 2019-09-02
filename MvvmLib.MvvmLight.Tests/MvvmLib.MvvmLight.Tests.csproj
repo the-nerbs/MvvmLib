@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp2.1;net461</TargetFrameworks>
+    <TargetFrameworks>net461</TargetFrameworks>
 
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -10,11 +10,12 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="1.3.2" />
     <PackageReference Include="MSTest.TestFramework" Version="1.3.2" />
+    <PackageReference Include="MvvmLightLibs" Version="5.4.1.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\MvvmLib.Core\MvvmLib.Core.csproj" />
-    <ProjectReference Include="..\MvvmLib\MvvmLib.csproj" />
+    <ProjectReference Include="..\MvvmLib.MvvmLight\MvvmLib.MvvmLight.csproj" />
   </ItemGroup>
 
 </Project>

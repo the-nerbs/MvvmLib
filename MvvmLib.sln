@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29215.179
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MvvmLib", "MvvmLib\MvvmLib.csproj", "{8D1C0703-A7F6-4915-8B20-EEB192DF0311}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MvvmLib", "MvvmLib\MvvmLib.csproj", "{8D1C0703-A7F6-4915-8B20-EEB192DF0311}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MvvmLib.MvvmLight", "MvvmLib.MvvmLight\MvvmLib.MvvmLight.csproj", "{F6FB4C29-A3AF-45B3-BC59-87A24252C566}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MvvmLib.MvvmLight", "MvvmLib.MvvmLight\MvvmLib.MvvmLight.csproj", "{F6FB4C29-A3AF-45B3-BC59-87A24252C566}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MvvmLib.Core", "MvvmLib.Core\MvvmLib.Core.csproj", "{D70B6F09-5D89-43D4-AA07-5DEAF9C5AA7A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MvvmLib.Core", "MvvmLib.Core\MvvmLib.Core.csproj", "{D70B6F09-5D89-43D4-AA07-5DEAF9C5AA7A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{72F2DC16-A654-401D-B268-7E1EC4169727}"
 	ProjectSection(SolutionItems) = preProject
@@ -15,7 +15,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Directory.Build.targets = Directory.Build.targets
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MvvmLib.Tests", "MvvmLib.Tests\MvvmLib.Tests.csproj", "{404A4C59-1733-422C-9847-4DF8257176B4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MvvmLib.Tests", "MvvmLib.Tests\MvvmLib.Tests.csproj", "{404A4C59-1733-422C-9847-4DF8257176B4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MvvmLib.MvvmLight.Tests", "MvvmLib.MvvmLight.Tests\MvvmLib.MvvmLight.Tests.csproj", "{A650AE21-B3B6-47A1-8FEA-42EFE5CB35EC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{404A4C59-1733-422C-9847-4DF8257176B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{404A4C59-1733-422C-9847-4DF8257176B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{404A4C59-1733-422C-9847-4DF8257176B4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A650AE21-B3B6-47A1-8FEA-42EFE5CB35EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A650AE21-B3B6-47A1-8FEA-42EFE5CB35EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A650AE21-B3B6-47A1-8FEA-42EFE5CB35EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A650AE21-B3B6-47A1-8FEA-42EFE5CB35EC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
