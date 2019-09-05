@@ -34,9 +34,9 @@ namespace MvvmLib.Ioc
 
             container.Bind<IA, A>();
             container.Bind<IB, B>();
-            container.Bind<IC, C>();
+            //container.Bind<IC, C>();
 
-            var c = container.Resolve<IC>();
+            var c = container.Resolve<C>();
         }
     }
 }
