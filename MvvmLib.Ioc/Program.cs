@@ -32,11 +32,16 @@ namespace MvvmLib.Ioc
         {
             var container = new IocContainer();
 
-            container.Bind<IA, A>();
+            container.Bind<IA, A>(singleInstance: true);
             container.Bind<IB, B>();
             //container.Bind<IC, C>();
 
             var c = container.Resolve<C>();
+            var c2 = container.Resolve<C>();
+
+            Console.WriteLine($"c == c2? {ReferenceEquals(c, c2)}");
+            Console.WriteLine($"c.A == c2.A? {ReferenceEquals(c.A, c2.A)}");
+            Console.WriteLine($"c.B == c2.B? {ReferenceEquals(c.B, c2.B)}");
         }
     }
 }
