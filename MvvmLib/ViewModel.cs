@@ -12,7 +12,7 @@ namespace MvvmLib
         /// <summary>
         /// Gets an object that can be used to locate service objects.
         /// </summary>
-        protected IServiceLocator Services { get; }
+        internal protected IServiceLocator Services { get; }
 
 
         /// <summary>

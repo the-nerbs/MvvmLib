@@ -36,7 +36,7 @@ namespace MvvmLib
         /// <summary>
         /// Gets a cache of delegates for accessing properties of this view model type.
         /// </summary>
-        protected TypeGetterCache GetterCache { get; }
+        internal protected TypeGetterCache GetterCache { get; }
 
 
         /// <summary>

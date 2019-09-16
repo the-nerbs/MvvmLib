@@ -14,4 +14,8 @@
     <ProjectReference Include="..\MvvmLib.Core\MvvmLib.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="MvvmLib.MvvmLight.Tests" />
+  </ItemGroup>
+
 </Project>

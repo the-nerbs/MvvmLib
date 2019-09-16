@@ -36,7 +36,7 @@ namespace MvvmLib.MvvmLight
         /// <summary>
         /// Gets a cache of delegates for accessing properties of this view model type.
         /// </summary>
-        protected TypeGetterCache GetterCache { get; }
+        internal protected TypeGetterCache GetterCache { get; }
 
 
         /// <summary>
@@ -53,10 +53,10 @@ namespace MvvmLib.MvvmLight
         protected ValidatingViewModel(ISimpleIoc services)
             : base(services)
         {
-            var cache = (PropertyGetterCache)Services.GetService(typeof(PropertyGetterCache));
-            if (cache is null)
+            PropertyGetterCache cache = PropertyGetterCache.Default;
+            if (Services.IsRegistered<PropertyGetterCache>())
             {
-                cache = PropertyGetterCache.Default;
+                cache = services.GetInstance<PropertyGetterCache>();
             }
 
             Type thisType = GetType();

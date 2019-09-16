@@ -20,12 +20,22 @@ namespace MvvmLib.Tests.MvvmLight
                 : base(DefaultServices())
             { }
 
+            public TestViewModel(int useDefaultBaseCtor)
+                : base()
+            { }
+
 
             private static ISimpleIoc DefaultServices()
             {
                 var container = new SimpleIoc();
                 container.Register(() => new PropertyGetterCache());
                 return container;
+            }
+
+
+            public void PublicRaisePropertyChanged(string name)
+            {
+                RaisePropertyChanged(name);
             }
         }
 
@@ -43,6 +53,16 @@ namespace MvvmLib.Tests.MvvmLight
 
                 return Result;
             }
+        }
+
+
+        [TestMethod]
+        public void TestDefaultState()
+        {
+            var vm = new TestViewModel(useDefaultBaseCtor: 1);
+
+            Assert.AreSame(SimpleIoc.Default, vm.Services);
+            Assert.AreSame(PropertyGetterCache.Default[typeof(TestViewModel)], vm.GetterCache);
         }
 
 
@@ -344,6 +364,73 @@ namespace MvvmLib.Tests.MvvmLight
 
             Assert.AreEqual(0, rule.RunCount);
             CollectionAssert.AreEqual(Array.Empty<string>(), errors);
+        }
+
+
+        [TestMethod]
+        public void TestHasErrorsTrue()
+        {
+            var rule = new TestValidationRule
+            {
+                Result = new ValidationRuleResult(true, "test"),
+            };
+
+            var vm = new TestViewModel
+            {
+                AProperty = 5,
+            };
+
+            vm.AddValidationRule(nameof(TestViewModel.AProperty), rule);
+
+            Assert.IsTrue(vm.HasErrors);
+        }
+
+        [TestMethod]
+        public void TestHasErrorsFalse()
+        {
+            var rule = new TestValidationRule
+            {
+                Result = ValidationRuleResult.Success,
+            };
+
+            var vm = new TestViewModel
+            {
+                AProperty = 5,
+            };
+
+            vm.AddValidationRule(nameof(TestViewModel.AProperty), rule);
+
+            Assert.IsFalse(vm.HasErrors);
+        }
+
+
+        [TestMethod]
+        public void TestPropertyChangeFiresErrorsChanged()
+        {
+            var rule = new TestValidationRule
+            {
+                Result = ValidationRuleResult.Success,
+            };
+
+            var vm = new TestViewModel
+            {
+                AProperty = 5,
+            };
+
+            vm.AddValidationRule(nameof(TestViewModel.AProperty), rule);
+
+            var errorChanges = new List<string>();
+            vm.ErrorsChanged += (sender, e) =>
+            {
+                errorChanges.Add(e.PropertyName);
+            };
+
+            vm.PublicRaisePropertyChanged(nameof(vm.AProperty));
+
+            CollectionAssert.AreEqual(
+                new[] { nameof(TestViewModel.AProperty), string.Empty },
+                errorChanges
+            );
         }
     }
 }
