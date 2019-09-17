@@ -419,18 +419,50 @@ namespace MvvmLib.Tests.MvvmLight
 
             vm.AddValidationRule(nameof(TestViewModel.AProperty), rule);
 
-            var errorChanges = new List<string>();
-            vm.ErrorsChanged += (sender, e) =>
+            List<string> errorChanges =
+            CaptureErrorChanges(vm, () =>
             {
-                errorChanges.Add(e.PropertyName);
-            };
-
-            vm.PublicRaisePropertyChanged(nameof(vm.AProperty));
+                vm.PublicRaisePropertyChanged(nameof(vm.AProperty));
+            });
 
             CollectionAssert.AreEqual(
                 new[] { nameof(TestViewModel.AProperty), string.Empty },
                 errorChanges
             );
+        }
+
+        [TestMethod]
+        public void TestPropertyChangeFiresErrorsChangedAndDoesNotThrowWithNoSubscribers()
+        {
+            var rule = new TestValidationRule
+            {
+                Result = ValidationRuleResult.Success,
+            };
+
+            var vm = new TestViewModel
+            {
+                AProperty = 5,
+            };
+
+            vm.AddValidationRule(nameof(TestViewModel.AProperty), rule);
+
+            // this line should not throw any exceptions.
+            vm.PublicRaisePropertyChanged(nameof(vm.AProperty));
+        }
+
+
+        private List<string> CaptureErrorChanges(ValidatingViewModel obj, Action action)
+        {
+            var changes = new List<string>();
+
+            obj.ErrorsChanged += (sender, e) =>
+            {
+                changes.Add(e.PropertyName);
+            };
+
+            action();
+
+            return changes;
         }
     }
 }

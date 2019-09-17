@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using GalaSoft.MvvmLight.Ioc;
 
 namespace MvvmLib.MvvmLight
@@ -205,15 +206,34 @@ namespace MvvmLib.MvvmLight
         }
 
 
+        /// <summary>
+        /// Raises the <see cref="ErrorsChanged"/> event with the given property name.
+        /// </summary>
+        /// <param name="propertyName">
+        /// The name of the property whose errors may have changed, or null or empty to signal
+        /// that the entity errors may have changed.
+        /// </param>
+        protected void RaiseErrorsChanged([CallerMemberName] string propertyName = null)
+        {
+            EventHandler<DataErrorsChangedEventArgs> handler = ErrorsChanged;
+            if (!(handler is null))
+            {
+                handler(this, new DataErrorsChangedEventArgs(propertyName));
+
+                // if the given property name was for the entity, then don't raise
+                // the event a second time for the entity specifically.
+                if (!string.IsNullOrEmpty(propertyName))
+                {
+                    handler(this, new DataErrorsChangedEventArgs(string.Empty));
+                }
+            }
+        }
+
+
         private static void PropertyChangedToErrorsChanged(object sender, PropertyChangedEventArgs e)
         {
             var vvm = (ValidatingViewModel)sender;
-
-            if (vvm.ErrorsChanged is var handler)
-            {
-                handler(vvm, new DataErrorsChangedEventArgs(e.PropertyName));
-                handler(vvm, new DataErrorsChangedEventArgs(string.Empty));
-            }
+            vvm.RaiseErrorsChanged(e?.PropertyName);
         }
     }
 }
