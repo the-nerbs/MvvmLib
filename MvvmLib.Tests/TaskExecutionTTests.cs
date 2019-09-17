@@ -42,7 +42,7 @@ namespace MvvmLib.Tests
                 {
                     evnt.Set();
                     int counter = int.MinValue;
-                    while (!complete)
+                    while (!Volatile.Read(ref complete))
                     {
                         unchecked
                         {
@@ -72,7 +72,7 @@ namespace MvvmLib.Tests
                 }
                 finally
                 {
-                    complete = true;
+                    Volatile.Write(ref complete, true);
                 }
             }
         }
@@ -87,7 +87,7 @@ namespace MvvmLib.Tests
                 {
                     evnt.Set();
                     int counter = int.MinValue;
-                    while (!complete)
+                    while (!Volatile.Read(ref complete))
                     {
                         unchecked
                         {
@@ -102,7 +102,7 @@ namespace MvvmLib.Tests
                     evnt.Wait();
                     var e = new TaskExecution<int>(task, defaultResult: -1);
 
-                    complete = true;
+                    Volatile.Write(ref complete, true);
                     await e.CompletionTask;
 
                     Assert.AreSame(task, e.Task);
@@ -178,7 +178,7 @@ namespace MvvmLib.Tests
                 {
                     evnt.Set();
                     int counter = int.MinValue;
-                    while (!complete)
+                    while (!Volatile.Read(ref complete))
                     {
                         unchecked
                         {
@@ -199,7 +199,7 @@ namespace MvvmLib.Tests
                         changes.Add(args.PropertyName);
                     };
 
-                    complete = true;
+                    Volatile.Write(ref complete, true);
 
                     await e.CompletionTask;
 
@@ -240,7 +240,7 @@ namespace MvvmLib.Tests
                     {
                         evnt.Set();
                         int counter = int.MinValue;
-                        while (!complete)
+                        while (!Volatile.Read(ref complete))
                         {
                             unchecked
                             {
@@ -265,7 +265,7 @@ namespace MvvmLib.Tests
                             changes.Add(args.PropertyName);
                         };
 
-                        complete = true;
+                        Volatile.Write(ref complete, true);
 
                         await e.CompletionTask;
 
@@ -303,7 +303,7 @@ namespace MvvmLib.Tests
                 {
                     evnt.Set();
                     int counter = int.MinValue;
-                    while (!complete)
+                    while (!Volatile.Read(ref complete))
                     {
                         unchecked
                         {
@@ -325,7 +325,7 @@ namespace MvvmLib.Tests
                         changes.Add(args.PropertyName);
                     };
 
-                    complete = true;
+                    Volatile.Write(ref complete, true);
 
                     await e.CompletionTask;
 
