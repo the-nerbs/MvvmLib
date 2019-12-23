@@ -46,6 +46,33 @@ namespace MvvmLib.Tests
             Assert.AreEqual(1, canExecuteRunCount);
         }
 
+        [TestMethod]
+        public void TestCanExecuteYieldsTrueWithoutDelegate()
+        {
+            var cmd = new AsyncRelayCommand(() => Task.CompletedTask, null);
+
+            bool canExecute = cmd.CanExecute();
+
+            Assert.AreEqual(true, canExecute);
+        }
+
+        [TestMethod]
+        public void TestExplicitCanExecute()
+        {
+            int canExecuteRunCount = 0;
+            Func<bool> canExecute = () =>
+            {
+                canExecuteRunCount++;
+                return true;
+            };
+
+            ICommand cmd = new AsyncRelayCommand(() => Task.CompletedTask, canExecute);
+
+            cmd.CanExecute(null);
+
+            Assert.AreEqual(1, canExecuteRunCount);
+        }
+
 
         [TestMethod]
         public void TestExecuteRunsDelegate()
@@ -90,6 +117,24 @@ namespace MvvmLib.Tests
             cmd.Execute();
 
             CollectionAssert.AreEqual(new[] { nameof(AsyncRelayCommand.Execution) }, changes);
+        }
+
+        [TestMethod]
+        public void TestExplicitExecute()
+        {
+            int executeRunCount = 0;
+
+            Func<Task> execute = () =>
+            {
+                executeRunCount++;
+                return Task.CompletedTask;
+            };
+
+            ICommand cmd = new AsyncRelayCommand(execute);
+
+            cmd.Execute(null);
+
+            Assert.AreEqual(1, executeRunCount);
         }
 
 
@@ -141,6 +186,24 @@ namespace MvvmLib.Tests
             await t;
         }
 
+        [TestMethod]
+        public async Task TestExplicitExecuteAsyncRunsDelegate()
+        {
+            int executeRunCount = 0;
+
+            Func<Task> execute = () =>
+            {
+                executeRunCount++;
+                return Task.CompletedTask;
+            };
+
+            IAsyncCommand cmd = new AsyncRelayCommand(execute);
+
+            await cmd.ExecuteAsync(null);
+
+            Assert.AreEqual(1, executeRunCount);
+        }
+
 
         [TestMethod]
         public void TestRaiseCanExecuteChanged()
@@ -156,6 +219,15 @@ namespace MvvmLib.Tests
             cmd.RaiseCanExecuteChanged();
 
             Assert.AreEqual(1, eventFiredCount);
+        }
+
+        [TestMethod]
+        public void TestRaiseCanExecuteChangedWithoutHandler()
+        {
+            var cmd = new AsyncRelayCommand(() => Task.CompletedTask);
+
+            // "assert" that this does not throw
+            cmd.RaiseCanExecuteChanged();
         }
     }
 }

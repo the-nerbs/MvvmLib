@@ -310,6 +310,15 @@ namespace MvvmLib.Tests.Standalone
             CollectionAssert.AreEqual(new[] { "test" }, changes);
         }
 
+        [TestMethod]
+        public void TestRaisePropertyChangedWithNoHandler()
+        {
+            var obj = new TestObject();
+
+            // "assert" that this does not throw
+            obj.Raise("test");
+        }
+
 
         private List<string> CapturePropertyChanges(TestObject obj, Action action)
         {
