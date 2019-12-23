@@ -9,7 +9,7 @@ namespace MvvmLib.Ioc
 {
     public class IocContainer
     {
-        private readonly Dictionary<Type, Registration> _pregistrations = new Dictionary<Type, Registration>();
+        private readonly Dictionary<Type, Registration> _registrations = new Dictionary<Type, Registration>();
 
 
         public void Bind<T, TClass>()
@@ -45,7 +45,7 @@ namespace MvvmLib.Ioc
                 flags |= RegistrationFlags.SingleInstance;
             }
 
-            _pregistrations[type] = new Registration(provider, flags);
+            _registrations[type] = new Registration(provider, flags);
         }
 
 
@@ -70,7 +70,7 @@ namespace MvvmLib.Ioc
         private bool TryResolve(Type type, out Registration resolved)
         {
             // fast path: the type has a provider registered
-            if (_pregistrations.TryGetValue(type, out var reg))
+            if (_registrations.TryGetValue(type, out var reg))
             {
                 resolved = reg;
                 return true;
