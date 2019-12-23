@@ -9,6 +9,10 @@ namespace MvvmLib
     /// </summary>
     public static class ValidationStrategies
     {
+        // Note: This is the only way our IValidationStrategy implementations are exposed publicly.
+        // This means that this library controls how these are instantiated, so we don't let people
+        // (for example) share instances of the CachedValidation when that is not a valid use.
+
         /// <summary>
         /// Gets a validation strategy that evaluates the validation rules each time the results
         /// are requested.

@@ -15,7 +15,10 @@ namespace MvvmLib
         /// </summary>
         /// <param name="viewModel">The view model.</param>
         /// <param name="propertyName">The name of the property to validate.</param>
-        /// <returns>A collection of validation failures.</returns>
+        /// <returns>
+        /// A collection of <see cref="ValidationRuleResult"/> objects describing validation
+        /// failures. This does not include successful results.
+        /// </returns>
         public static IEnumerable<ValidationRuleResult> Validate(
             IValidatingViewModel viewModel, string propertyName)
         {
