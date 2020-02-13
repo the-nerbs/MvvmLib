@@ -5,4 +5,9 @@
     <RootNamespace>MvvmLib</RootNamespace>
     <Description>Provides some utilities for MVVM applications. This is the core library supporting the MvvmLib and MvvmLib.MvvmLight packages.</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="MvvmLib.Tests" />
+    <InternalsVisibleTo Include="MvvmLib.MvvmLight.Tests" />
+  </ItemGroup>
 </Project>

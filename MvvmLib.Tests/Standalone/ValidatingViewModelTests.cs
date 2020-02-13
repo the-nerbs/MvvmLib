@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
+using CommonServiceLocator;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace MvvmLib.Tests.Standalone
@@ -17,6 +19,16 @@ namespace MvvmLib.Tests.Standalone
             public TestViewModel()
                 : base(new TestServiceLocator(new PropertyGetterCache()))
             { }
+
+            public TestViewModel(int useDefaultBaseCtor)
+                : base()
+            { }
+
+
+            public void PublicRaisePropertyChanged(string name)
+            {
+                RaisePropertyChanged(name);
+            }
         }
 
         private class TestValidationRule : IValidationRule
@@ -33,6 +45,49 @@ namespace MvvmLib.Tests.Standalone
 
                 return Result;
             }
+        }
+
+
+        [TestMethod]
+        public void TestDefaultState()
+        {
+            try
+            {
+                var locator = new TestServiceLocator();
+                ServiceLocator.SetLocatorProvider(() => locator);
+
+                var vm = new TestViewModel(useDefaultBaseCtor: 1);
+
+                Assert.AreSame(locator, vm.Services);
+                Assert.AreSame(PropertyGetterCache.Default[typeof(TestViewModel)], vm.GetterCache);
+                Assert.IsInstanceOfType(vm.ValidationStrategy, typeof(ImmediateValidation));
+            }
+            finally
+            {
+                ServiceLocator.SetLocatorProvider(null);
+            }
+        }
+
+
+        [TestMethod]
+        public void TestChangeValidationStrategy()
+        {
+            var vm = new TestViewModel();
+            var strat = new TestStrategy();
+
+            vm.ValidationStrategy = strat;
+
+            Assert.AreSame(strat, vm.ValidationStrategy);
+        }
+
+        [TestMethod]
+        public void TestChangeValidationStrategyToNull()
+        {
+            var vm = new TestViewModel();
+
+            vm.ValidationStrategy = null;
+
+            Assert.IsInstanceOfType(vm.ValidationStrategy, typeof(ImmediateValidation));
         }
 
 
@@ -334,6 +389,160 @@ namespace MvvmLib.Tests.Standalone
 
             Assert.AreEqual(0, rule.RunCount);
             CollectionAssert.AreEqual(Array.Empty<string>(), errors);
+        }
+
+
+        [TestMethod]
+        public void TestHasErrorsTrue()
+        {
+            var rule = new TestValidationRule
+            {
+                Result = new ValidationRuleResult(true, "test"),
+            };
+
+            var vm = new TestViewModel
+            {
+                AProperty = 5,
+            };
+
+            vm.AddValidationRule(nameof(TestViewModel.AProperty), rule);
+
+            Assert.IsTrue(vm.HasErrors);
+        }
+
+        [TestMethod]
+        public void TestHasErrorsFalse()
+        {
+            var rule = new TestValidationRule
+            {
+                Result = ValidationRuleResult.Success,
+            };
+
+            var vm = new TestViewModel
+            {
+                AProperty = 5,
+            };
+
+            vm.AddValidationRule(nameof(TestViewModel.AProperty), rule);
+
+            Assert.IsFalse(vm.HasErrors);
+        }
+
+
+        [TestMethod]
+        public void TestPropertyChangeFiresErrorsChanged()
+        {
+            var rule = new TestValidationRule
+            {
+                Result = ValidationRuleResult.Success,
+            };
+
+            var vm = new TestViewModel
+            {
+                AProperty = 5,
+            };
+
+            vm.AddValidationRule(nameof(TestViewModel.AProperty), rule);
+
+            List<string> errorChanges = CaptureErrorChanges(vm, () =>
+            {
+                vm.PublicRaisePropertyChanged(nameof(vm.AProperty));
+            });
+
+            CollectionAssert.AreEqual(
+                new[] { nameof(TestViewModel.AProperty), string.Empty },
+                errorChanges
+            );
+        }
+
+        [TestMethod]
+        public void TestPropertyChangedNullNameConvertedToEmpty()
+        {
+            var rule = new TestValidationRule
+            {
+                Result = ValidationRuleResult.Success,
+            };
+
+            var vm = new TestViewModel();
+
+            vm.AddValidationRule(null, rule);
+
+            List<string> errorChanges = CaptureErrorChanges(vm, () =>
+            {
+                vm.PublicRaisePropertyChanged(null);
+            });
+
+            CollectionAssert.AreEqual(
+                new[] { string.Empty },
+                errorChanges
+            );
+        }
+
+        [TestMethod]
+        public void TestPropertyChangeFiresErrorsChangedAndDoesNotThrowWithNoSubscribers()
+        {
+            var rule = new TestValidationRule
+            {
+                Result = ValidationRuleResult.Success,
+            };
+
+            var vm = new TestViewModel
+            {
+                AProperty = 5,
+            };
+
+            vm.AddValidationRule(nameof(TestViewModel.AProperty), rule);
+
+            // this line should not throw any exceptions.
+            vm.PublicRaisePropertyChanged(nameof(vm.AProperty));
+        }
+
+
+        [TestMethod]
+        public void TestExplicitGetErrors()
+        {
+            var vm = new TestViewModel();
+            vm.AddValidationRule<int>(nameof(vm.AProperty), x => new ValidationRuleResult(true, "error"));
+
+            INotifyDataErrorInfo indei = vm;
+
+            object[] indeiErrors = indei
+                .GetErrors(nameof(vm.AProperty))
+                .Cast<object>()
+                .ToArray();
+
+            string[] errors = vm.GetErrors(nameof(vm.AProperty)).ToArray();
+
+            CollectionAssert.AreEqual(errors, indeiErrors);
+        }
+
+
+        private List<string> CaptureErrorChanges(ValidatingViewModel obj, Action action)
+        {
+            var changes = new List<string>();
+
+            obj.ErrorsChanged += (sender, e) =>
+            {
+                changes.Add(e.PropertyName);
+            };
+
+            action();
+
+            return changes;
+        }
+
+
+        private class TestStrategy : IValidationStrategy
+        {
+            public void Invalidate(string propertyName)
+            {
+
+            }
+
+            public IEnumerable<ValidationRuleResult> Validate(IValidatingViewModel viewModel, string propertyName)
+            {
+                return Array.Empty<ValidationRuleResult>();
+            }
         }
     }
 }

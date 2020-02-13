@@ -12,7 +12,7 @@ namespace MvvmLib.MvvmLight
         /// <summary>
         /// Gets an object that can be used to locate service objects.
         /// </summary>
-        protected ISimpleIoc Services { get; }
+        internal protected ISimpleIoc Services { get; }
 
 
         /// <summary>

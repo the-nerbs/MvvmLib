@@ -15,6 +15,7 @@ namespace MvvmLib
     /// Mimics the Code Contracts preconditions API, but does not require the code rewrite tool.
     /// Since this does not use the rewrite tool, the post-conditions API is not available.
     /// </summary>
+    [ExcludeFromCodeCoverage] // copy-pasted class
     public static class Contract
     {
         /// <summary>

@@ -12,7 +12,7 @@ namespace MvvmLib
         /// <summary>
         /// An instance of <see cref="ValidationRuleResult"/> describing a successful result.
         /// </summary>
-        public static readonly ValidationRuleResult Success = new ValidationRuleResult(true, null);
+        public static readonly ValidationRuleResult Success = new ValidationRuleResult(false, null);
 
 
         /// <summary>

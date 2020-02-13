@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using GalaSoft.MvvmLight.Ioc;
 
 namespace MvvmLib.MvvmLight
@@ -10,10 +11,12 @@ namespace MvvmLib.MvvmLight
     /// <summary>
     /// Provides a base class for view models that validate their data.
     /// </summary>
-    public abstract class ValidatingViewModel : ViewModel, INotifyDataErrorInfo
+    public abstract class ValidatingViewModel : ViewModel, INotifyDataErrorInfo, IValidatingViewModel
     {
         private readonly Dictionary<string, List<IValidationRule>> _rules
             = new Dictionary<string, List<IValidationRule>>();
+
+        private IValidationStrategy _validationStrategy = ValidationStrategies.Immediate;
 
 
         /// <summary>
@@ -36,7 +39,31 @@ namespace MvvmLib.MvvmLight
         /// <summary>
         /// Gets a cache of delegates for accessing properties of this view model type.
         /// </summary>
-        protected TypeGetterCache GetterCache { get; }
+        internal protected TypeGetterCache GetterCache { get; }
+
+        /// <summary>
+        /// Gets or sets the strategy used for property validation.
+        /// </summary>
+        internal protected IValidationStrategy ValidationStrategy
+        {
+            get { return _validationStrategy; }
+            set { _validationStrategy = value ?? ValidationStrategies.Immediate; }
+        }
+
+        ILookup<string, IValidationRule> IValidatingViewModel.Rules
+        {
+            get
+            {
+                return _rules
+                    .SelectMany(kvp => kvp.Value.Select(r => new KeyValuePair<string, IValidationRule>(kvp.Key, r)))
+                    .ToLookup(kvp => kvp.Key, kvp => kvp.Value);
+            }
+        }
+
+        TypeGetterCache IValidatingViewModel.GetterCache
+        {
+            get { return GetterCache; }
+        }
 
 
         /// <summary>
@@ -53,10 +80,10 @@ namespace MvvmLib.MvvmLight
         protected ValidatingViewModel(ISimpleIoc services)
             : base(services)
         {
-            var cache = (PropertyGetterCache)Services.GetService(typeof(PropertyGetterCache));
-            if (cache is null)
+            PropertyGetterCache cache = PropertyGetterCache.Default;
+            if (Services.IsRegistered<PropertyGetterCache>())
             {
-                cache = PropertyGetterCache.Default;
+                cache = services.GetInstance<PropertyGetterCache>();
             }
 
             Type thisType = GetType();
@@ -147,56 +174,9 @@ namespace MvvmLib.MvvmLight
                 propertyName = string.Empty;
             }
 
-            if (_rules.TryGetValue(propertyName, out var rules))
-            {
-                object value = default;
-                Exception getValueError = null;
-
-                if (string.IsNullOrEmpty(propertyName))
-                {
-                    value = this;
-                }
-                else
-                {
-                    Func<object, object> getter = GetterCache[propertyName];
-
-                    try
-                    {
-                        value = getter(this);
-                    }
-                    catch (Exception ex)
-                    {
-                        getValueError = ex;
-                    }
-                }
-
-                if (getValueError is null)
-                {
-                    foreach (IValidationRule rule in rules.ToArray())
-                    {
-                        ValidationRuleResult result;
-
-                        try
-                        {
-                            result = rule.Run(value);
-                        }
-                        catch (Exception ex)
-                        {
-                            result = new ValidationRuleResult(true, ex.Message);
-                        }
-
-                        if (!(result is null)
-                            && result.IsError)
-                        {
-                            yield return result.ErrorMessage;
-                        }
-                    }
-                }
-                else
-                {
-                    yield return getValueError.Message;
-                }
-            }
+            return _validationStrategy
+                .Validate(this, propertyName)
+                .Select(r => r.ErrorMessage);
         }
 
         IEnumerable INotifyDataErrorInfo.GetErrors(string propertyName)
@@ -205,15 +185,37 @@ namespace MvvmLib.MvvmLight
         }
 
 
+        /// <summary>
+        /// Raises the <see cref="ErrorsChanged"/> event with the given property name.
+        /// </summary>
+        /// <param name="propertyName">
+        /// The name of the property whose errors may have changed, or null or empty to signal
+        /// that the entity errors may have changed.
+        /// </param>
+        protected void RaiseErrorsChanged([CallerMemberName] string propertyName = null)
+        {
+            EventHandler<DataErrorsChangedEventArgs> handler = ErrorsChanged;
+            if (!(handler is null))
+            {
+                handler(this, new DataErrorsChangedEventArgs(propertyName));
+
+                // if the given property name was for the entity, then don't raise
+                // the event a second time for the entity specifically.
+                if (!string.IsNullOrEmpty(propertyName))
+                {
+                    handler(this, new DataErrorsChangedEventArgs(string.Empty));
+                }
+            }
+        }
+
+
         private static void PropertyChangedToErrorsChanged(object sender, PropertyChangedEventArgs e)
         {
             var vvm = (ValidatingViewModel)sender;
 
-            if (vvm.ErrorsChanged is var handler)
-            {
-                handler(vvm, new DataErrorsChangedEventArgs(e.PropertyName));
-                handler(vvm, new DataErrorsChangedEventArgs(string.Empty));
-            }
+            string name = e.PropertyName ?? string.Empty;
+            vvm._validationStrategy.Invalidate(name);
+            vvm.RaiseErrorsChanged(name);
         }
     }
 }

@@ -13,7 +13,7 @@ namespace MvvmLib
         /// Runs the validation rule.
         /// </summary>
         /// <param name="value">The value to validate.</param>
-        /// <returns>The result of the validation.</returns>
+        /// <returns>The result of the validation. A null result is considered successful.</returns>
         /// <exception cref="InvalidCastException">The value has an unexpected type.</exception>
         ValidationRuleResult Run(object value);
     }
@@ -27,7 +27,7 @@ namespace MvvmLib
         /// Runs the validation rule.
         /// </summary>
         /// <param name="value">The value to validate.</param>
-        /// <returns>The result of the validation.</returns>
+        /// <returns>The result of the validation. A null result is considered successful.</returns>
         ValidationRuleResult Run(TValue value);
     }
 }
