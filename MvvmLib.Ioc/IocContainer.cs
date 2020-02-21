@@ -11,6 +11,18 @@ namespace MvvmLib.Ioc
     {
         private readonly Dictionary<RegistrationKey, Registration> _registrations = new Dictionary<RegistrationKey, Registration>();
 
+        private readonly IServiceLocator _parentContainer;
+
+
+        public IocContainer()
+            : this(null)
+        { }
+
+        public IocContainer(IServiceLocator parent)
+        {
+            _parentContainer = parent;
+        }
+
 
         // Note: preferred parameter order for Bind methods here is:
         //  1. Binding key
@@ -152,14 +164,14 @@ namespace MvvmLib.Ioc
 
                     if (TryResolve(pis[p].ParameterType, bindingKey, out paramProvider))
                     {
-                        // exact match with the binding key.
+                        // exact match with the binding key in this or parent.
                         parameters[p] = paramProvider;
                     }
                     else if (!(bindingKeyAttr is null)
                         && bindingKeyAttr.FallbackToDefaultBinding
                         && TryResolve(pis[p].ParameterType, null, out paramProvider))
                     {
-                        // exact match with the fallback key.
+                        // exact match with the fallback key in this or parent.
                         parameters[p] = paramProvider;
                     }
                     else
@@ -176,8 +188,32 @@ namespace MvvmLib.Ioc
                 }
             }
 
+            // we failed to bind a constructor here. If we have a parent, then defer to that container.
+            if (!(_parentContainer is null))
+            {
+                return TryResolveFromParent(type, key, out resolved);
+            }
+
+            // no parent, so resolve failed
             resolved = null;
             return false;
+        }
+
+        private bool TryResolveFromParent(Type type, string key, out Registration registration)
+        {
+            Debug.Assert(!(_parentContainer is null));
+
+            try
+            {
+                var service = _parentContainer.GetInstance(type, key);
+                registration = new Registration(type, key, () => service, RegistrationFlags.Implicit);
+                return true;
+            }
+            catch (ActivationException)
+            {
+                registration = default;
+                return false;
+            }
         }
 
 
