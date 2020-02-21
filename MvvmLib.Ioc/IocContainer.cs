@@ -7,6 +7,9 @@ using CommonServiceLocator;
 
 namespace MvvmLib.Ioc
 {
+    /// <summary>
+    /// Another IOC container.
+    /// </summary>
     public class IocContainer : IServiceLocator
     {
         private readonly Dictionary<RegistrationKey, Registration> _registrations = new Dictionary<RegistrationKey, Registration>();
@@ -14,10 +17,20 @@ namespace MvvmLib.Ioc
         private readonly IServiceLocator _parentContainer;
 
 
+        /// <summary>
+        /// Initializes a new instance of <see cref="IocContainer"/>.
+        /// </summary>
         public IocContainer()
             : this(null)
         { }
 
+        /// <summary>
+        /// Initializes a new instance of <see cref="IocContainer"/> with a parent.
+        /// </summary>
+        /// <param name="parent">The parent container.</param>
+        /// <remarks>
+        /// If a service cannot be found in this container, the parent is checked.
+        /// </remarks>
         public IocContainer(IServiceLocator parent)
         {
             _parentContainer = parent;
@@ -30,40 +43,91 @@ namespace MvvmLib.Ioc
         //  3. Single instance flag
         // There's no real reasoning behind this, just an order to keep them all consistent.
 
+        /// <summary>
+        /// Binds a service type to a particular implementation.
+        /// </summary>
+        /// <typeparam name="T">The service type.</typeparam>
+        /// <typeparam name="TClass">The service implementation type.</typeparam>
         public void Bind<T, TClass>()
             where TClass : class, T
         {
             Bind<T, TClass>(key: null);
         }
 
+        /// <summary>
+        /// Binds a service type to a particular implementation.
+        /// </summary>
+        /// <typeparam name="T">The service type.</typeparam>
+        /// <typeparam name="TClass">The service implementation type.</typeparam>
+        /// <param name="key">A key to disambiguate between multiple instances of the same service.</param>
         public void Bind<T, TClass>(string key)
             where TClass : class, T
         {
             Bind<T, TClass>(key, false);
         }
 
+        /// <summary>
+        /// Binds a service type to a particular implementation.
+        /// </summary>
+        /// <typeparam name="T">The service type.</typeparam>
+        /// <typeparam name="TClass">The service implementation type.</typeparam>
+        /// <param name="singleInstance">
+        /// If true, only a single instance of the service will be instantiated. Otherwise a new
+        /// service instance will be created for each call to an overload of Resolve.
+        /// </param>
         public void Bind<T, TClass>(bool singleInstance)
             where TClass : class, T
         {
             Bind<T, TClass>(null, singleInstance);
         }
 
+        /// <summary>
+        /// Binds a service type to a particular implementation.
+        /// </summary>
+        /// <typeparam name="T">The service type.</typeparam>
+        /// <typeparam name="TClass">The service implementation type.</typeparam>
+        /// <param name="key">A key to disambiguate between multiple instances of the same service.</param>
+        /// <param name="singleInstance">
+        /// If true, only a single instance of the service will be instantiated. Otherwise a new
+        /// service instance will be created for each call to an overload of Resolve.
+        /// </param>
         public void Bind<T, TClass>(string key, bool singleInstance)
             where TClass : class, T
         {
             BindCore(typeof(T), key, Resolve<TClass>, singleInstance);
         }
 
+        /// <summary>
+        /// Binds a service type to an object yielded from a factory.
+        /// </summary>
+        /// <typeparam name="T">The service type.</typeparam>
+        /// <param name="factory">A delegate which provides the service object.</param>
         public void Bind<T>(Func<T> factory)
         {
             Bind(null, factory);
         }
 
+        /// <summary>
+        /// Binds a service type to an object yielded from a factory.
+        /// </summary>
+        /// <typeparam name="T">The service type.</typeparam>
+        /// <param name="key">A key to disambiguate between multiple instances of the same service.</param>
+        /// <param name="factory">A delegate which provides the service object.</param>
         public void Bind<T>(string key, Func<T> factory)
         {
             Bind(key, factory, false);
         }
 
+        /// <summary>
+        /// Binds a service type to an object yielded from a factory.
+        /// </summary>
+        /// <typeparam name="T">The service type.</typeparam>
+        /// <param name="key">A key to disambiguate between multiple instances of the same service.</param>
+        /// <param name="factory">A delegate which provides the service object.</param>
+        /// <param name="singleInstance">
+        /// If true, only a single instance of the service will be instantiated. Otherwise the 
+        /// <paramref name="factory"/> will be invoked for each call to an overload of Resolve.
+        /// </param>
         public void Bind<T>(string key, Func<T> factory, bool singleInstance)
         {
             Contract.RequiresNotNull(factory, nameof(factory));
@@ -85,23 +149,49 @@ namespace MvvmLib.Ioc
         }
 
 
+        /// <summary>
+        /// Resolves a service object.
+        /// </summary>
+        /// <typeparam name="T">The service type.</typeparam>
+        /// <returns>An instance of the service.</returns>
+        /// <exception cref="ActivationException">Failed to resolve the service instance.</exception>
         public T Resolve<T>()
             where T : class
         {
             return Resolve<T>(key: null);
         }
 
+        /// <summary>
+        /// Resolves a service object.
+        /// </summary>
+        /// <typeparam name="T">The service type.</typeparam>
+        /// <param name="key">A key to disambiguate between multiple instances of the same service.</param>
+        /// <returns>An instance of the service.</returns>
+        /// <exception cref="ActivationException">Failed to resolve the service instance.</exception>
         public T Resolve<T>(string key)
             where T : class
         {
             return (T)Resolve(typeof(T), key);
         }
 
+        /// <summary>
+        /// Resolves a service object.
+        /// </summary>
+        /// <param name="type">The service type.</param>
+        /// <returns>An instance of the service.</returns>
+        /// <exception cref="ActivationException">Failed to resolve the service instance.</exception>
         public object Resolve(Type type)
         {
             return Resolve(type, key: null);
         }
 
+        /// <summary>
+        /// Resolves a service object.
+        /// </summary>
+        /// <param name="type">The service type.</param>
+        /// <param name="key">A key to disambiguate between multiple instances of the same service.</param>
+        /// <returns>An instance of the service.</returns>
+        /// <exception cref="ActivationException">Failed to resolve the service instance.</exception>
         public object Resolve(Type type, string key)
         {
             Contract.RequiresNotNull(type, nameof(type));

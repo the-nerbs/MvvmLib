@@ -20,8 +20,7 @@ namespace MvvmLib.Ioc
         SingleInstance  = (1 << 0),
 
         /// <summary>
-        /// The registration was implicitly defined by an overload of
-        /// <see cref="IocContainer.Resolve"/>.
+        /// The registration was implicitly defined by an overload of IocContainer.Resolve.
         /// </summary>
         Implicit        = (1 << 1),
     }
