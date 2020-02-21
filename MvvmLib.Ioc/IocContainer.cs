@@ -7,8 +7,7 @@ using CommonServiceLocator;
 
 namespace MvvmLib.Ioc
 {
-    //TODO: implement IServiceLocator
-    public class IocContainer 
+    public class IocContainer : IServiceLocator
     {
         private readonly Dictionary<RegistrationKey, Registration> _registrations = new Dictionary<RegistrationKey, Registration>();
 
@@ -70,7 +69,7 @@ namespace MvvmLib.Ioc
             }
 
             // note: replaces any existing bindings.
-            _registrations[new RegistrationKey(type, key)] = new Registration(provider, flags);
+            _registrations[new RegistrationKey(type, key)] = new Registration(type, key, provider, flags);
         }
 
 
@@ -95,12 +94,25 @@ namespace MvvmLib.Ioc
         {
             Contract.RequiresNotNull(type, nameof(type));
 
-            if (TryResolve(type, key, out Registration regisration))
+            try
             {
-                return regisration.GetValue();
-            }
+                if (TryResolve(type, key, out Registration registration))
+                {
+                    return registration.GetValue();
+                }
 
-            throw new ActivationException($"Failed to resolve type {type}");
+                throw new ActivationException($"Failed to resolve type {type}.");
+            }
+            catch (ActivationException)
+            {
+                // pass ActivationExceptions along as-is.
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // wrap other exceptions from TryResolve in an ActivationException
+                throw new ActivationException($"Failed to resolve type {type}.", ex);
+            }
         }
 
         private bool TryResolve(Type type, string key, out Registration resolved)
@@ -159,13 +171,52 @@ namespace MvvmLib.Ioc
                 if (allBound)
                 {
                     object[] parameterValues = parameters.Select(paramProvider => paramProvider.GetValue()).ToArray();
-                    resolved = new Registration(() => ctor.Invoke(parameterValues), RegistrationFlags.Implicit);
+                    resolved = new Registration(type, key, () => ctor.Invoke(parameterValues), RegistrationFlags.Implicit);
                     return true;
                 }
             }
 
             resolved = null;
             return false;
+        }
+
+
+        object IServiceProvider.GetService(Type serviceType)
+        {
+            return Resolve(serviceType);
+        }
+
+        IEnumerable<object> IServiceLocator.GetAllInstances(Type serviceType)
+        {
+            return _registrations
+                .Where(kvp => kvp.Key.Type == serviceType)
+                .Select(kvp => kvp.Value.GetValue());
+        }
+
+        IEnumerable<TService> IServiceLocator.GetAllInstances<TService>()
+        {
+            return ((IServiceLocator)this).GetAllInstances(typeof(TService))
+                .Cast<TService>();
+        }
+
+        object IServiceLocator.GetInstance(Type serviceType)
+        {
+            return ((IServiceLocator)this).GetInstance(serviceType, null);
+        }
+
+        object IServiceLocator.GetInstance(Type serviceType, string key)
+        {
+            return Resolve(serviceType, key);
+        }
+
+        TService IServiceLocator.GetInstance<TService>()
+        {
+            return (TService)((IServiceLocator)this).GetInstance(typeof(TService), null);
+        }
+
+        TService IServiceLocator.GetInstance<TService>(string key)
+        {
+            return (TService)((IServiceLocator)this).GetInstance(typeof(TService), key);
         }
 
 

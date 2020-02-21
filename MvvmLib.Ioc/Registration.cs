@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using CommonServiceLocator;
 
 namespace MvvmLib.Ioc
 {
@@ -29,7 +30,8 @@ namespace MvvmLib.Ioc
     {
         private object _value;
 
-
+        public Type ServiceType { get; }
+        public string Key { get; }
         public RegistrationFlags Flags { get; }
 
         public bool IsSingleInstance
@@ -43,8 +45,12 @@ namespace MvvmLib.Ioc
         }
 
 
-        public Registration(Func<object> provider, RegistrationFlags flags)
+        public Registration(Type serviceType, string key, Func<object> provider, RegistrationFlags flags)
         {
+            Debug.Assert(!(serviceType is null));
+
+            ServiceType = serviceType;
+            Key = key;
             Flags = flags;
 
             if (IsSingleInstance)
@@ -60,17 +66,33 @@ namespace MvvmLib.Ioc
 
         public object GetValue()
         {
-            if (IsSingleInstance)
+            try
             {
-                return GetSingletonValue();
-            }
+                if (IsSingleInstance)
+                {
+                    return GetSingletonValue();
+                }
 
-            return DefaultGetValue();
+                return DefaultGetValue();
+            }
+            catch (Exception ex)
+            {
+                string message;
+                if (!(Key is null))
+                {
+                    message = string.Format(Constants.ActivationExceptionMessage, ServiceType, Key);
+                }
+                else
+                {
+                    message = $"Activation error occurred while trying to get instance of type {ServiceType}";
+                }
+                throw new ActivationException(message, ex);
+            }
         }
 
         private object GetSingletonValue()
         {
-            // create the singleton value. Note that Lazy<T> uses thread-safe
+            // create the singleton value. Note that Lazy<T> uses thread-safe initialization.
             if (_value is LazyLoader loader)
             {
                 _value = loader.initializer.Value;
