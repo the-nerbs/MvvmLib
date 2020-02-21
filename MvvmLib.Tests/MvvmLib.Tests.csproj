@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MvvmLib.Core\MvvmLib.Core.csproj" />
+    <ProjectReference Include="..\MvvmLib.Ioc\MvvmLib.Ioc.csproj" />
     <ProjectReference Include="..\MvvmLib\MvvmLib.csproj" />
   </ItemGroup>
 

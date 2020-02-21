@@ -7,36 +7,60 @@ using CommonServiceLocator;
 
 namespace MvvmLib.Ioc
 {
-    public class IocContainer
+    //TODO: implement IServiceLocator
+    public class IocContainer 
     {
-        private readonly Dictionary<Type, Registration> _registrations = new Dictionary<Type, Registration>();
+        private readonly Dictionary<RegistrationKey, Registration> _registrations = new Dictionary<RegistrationKey, Registration>();
 
+
+        // Note: preferred parameter order for Bind methods here is:
+        //  1. Binding key
+        //  2. Object factory
+        //  3. Single instance flag
+        // There's no real reasoning behind this, just an order to keep them all consistent.
 
         public void Bind<T, TClass>()
             where TClass : class, T
         {
-            Bind<T, TClass>(false);
+            Bind<T, TClass>(key: null);
+        }
+
+        public void Bind<T, TClass>(string key)
+            where TClass : class, T
+        {
+            Bind<T, TClass>(key, false);
         }
 
         public void Bind<T, TClass>(bool singleInstance)
             where TClass : class, T
         {
-            BindCore(typeof(T), Resolve<TClass>, singleInstance);
+            Bind<T, TClass>(null, singleInstance);
+        }
+
+        public void Bind<T, TClass>(string key, bool singleInstance)
+            where TClass : class, T
+        {
+            BindCore(typeof(T), key, Resolve<TClass>, singleInstance);
         }
 
         public void Bind<T>(Func<T> factory)
         {
-            Bind(factory, false);
+            Bind(null, factory);
         }
 
-        public void Bind<T>(Func<T> factory, bool singleInstance)
+        public void Bind<T>(string key, Func<T> factory)
+        {
+            Bind(key, factory, false);
+        }
+
+        public void Bind<T>(string key, Func<T> factory, bool singleInstance)
         {
             Contract.RequiresNotNull(factory, nameof(factory));
 
-            BindCore(typeof(T), () => factory, singleInstance);
+            BindCore(typeof(T), key, () => factory(), singleInstance);
         }
 
-        private void BindCore(Type type, Func<object> provider, bool singleInstance)
+        private void BindCore(Type type, string key, Func<object> provider, bool singleInstance)
         {
             RegistrationFlags flags = RegistrationFlags.None;
 
@@ -45,21 +69,33 @@ namespace MvvmLib.Ioc
                 flags |= RegistrationFlags.SingleInstance;
             }
 
-            _registrations[type] = new Registration(provider, flags);
+            // note: replaces any existing bindings.
+            _registrations[new RegistrationKey(type, key)] = new Registration(provider, flags);
         }
 
 
         public T Resolve<T>()
             where T : class
         {
-            return (T)Resolve(typeof(T));
+            return Resolve<T>(key: null);
+        }
+
+        public T Resolve<T>(string key)
+            where T : class
+        {
+            return (T)Resolve(typeof(T), key);
         }
 
         public object Resolve(Type type)
         {
+            return Resolve(type, key: null);
+        }
+
+        public object Resolve(Type type, string key)
+        {
             Contract.RequiresNotNull(type, nameof(type));
 
-            if (TryResolve(type, out Registration regisration))
+            if (TryResolve(type, key, out Registration regisration))
             {
                 return regisration.GetValue();
             }
@@ -67,10 +103,10 @@ namespace MvvmLib.Ioc
             throw new ActivationException($"Failed to resolve type {type}");
         }
 
-        private bool TryResolve(Type type, out Registration resolved)
+        private bool TryResolve(Type type, string key, out Registration resolved)
         {
             // fast path: the type has a provider registered
-            if (_registrations.TryGetValue(type, out var reg))
+            if (_registrations.TryGetValue(new RegistrationKey(type, key), out var reg))
             {
                 resolved = reg;
                 return true;
@@ -93,8 +129,25 @@ namespace MvvmLib.Ioc
                     allBound && p < pis.Length;
                     p++)
                 {
-                    if (TryResolve(pis[p].ParameterType, out var paramProvider))
+                    string bindingKey = null;
+                    Registration paramProvider;
+
+                    var bindingKeyAttr = pis[p].GetCustomAttribute<BindingKeyAttribute>();
+                    if (!(bindingKeyAttr is null))
                     {
+                        bindingKey = bindingKeyAttr.Key;
+                    }
+
+                    if (TryResolve(pis[p].ParameterType, bindingKey, out paramProvider))
+                    {
+                        // exact match with the binding key.
+                        parameters[p] = paramProvider;
+                    }
+                    else if (!(bindingKeyAttr is null)
+                        && bindingKeyAttr.FallbackToDefaultBinding
+                        && TryResolve(pis[p].ParameterType, null, out paramProvider))
+                    {
+                        // exact match with the fallback key.
                         parameters[p] = paramProvider;
                     }
                     else
@@ -113,6 +166,42 @@ namespace MvvmLib.Ioc
 
             resolved = null;
             return false;
+        }
+
+
+        readonly struct RegistrationKey : IEquatable<RegistrationKey>
+        {
+            public Type Type { get; }
+            public string Key { get; }
+
+
+            public RegistrationKey(Type type, string name)
+            {
+                Type = type;
+                Key = name;
+            }
+
+
+            public bool Equals(RegistrationKey other)
+            {
+                return EqualityComparer<Type>.Default.Equals(Type, other.Type)
+                    && StringComparer.Ordinal.Equals(Key, other.Key);
+            }
+
+            public override int GetHashCode()
+            {
+                // numbers generated by visual studio
+                var hashCode = -1979447941;
+
+                hashCode = hashCode * -1521134295 + EqualityComparer<Type>.Default.GetHashCode(Type);
+
+                int nameHash = Key is null
+                    ? 0
+                    : StringComparer.Ordinal.GetHashCode(Key);
+                hashCode = hashCode * -1521134295 + nameHash;
+
+                return hashCode;
+            }
         }
     }
 }

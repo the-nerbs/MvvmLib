@@ -4,7 +4,6 @@
   <RunConfiguration>
     <MaxCpuCount>1</MaxCpuCount>
     <ResultsDirectory>.\TestResults</ResultsDirectory>
-    <TestAdaptersPaths>.;%SystemDrive%\Temp\foo;%SystemDrive%\Temp\bar</TestAdaptersPaths>
     <TestSessionTimeout>10000</TestSessionTimeout>
   </RunConfiguration>
 
