@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using CommonServiceLocator;
 
 namespace MvvmLib.Ioc
@@ -15,6 +16,7 @@ namespace MvvmLib.Ioc
         private readonly Dictionary<RegistrationKey, Registration> _registrations = new Dictionary<RegistrationKey, Registration>();
 
         private readonly IServiceLocator _parentContainer;
+        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
 
 
         /// <summary>
@@ -49,6 +51,7 @@ namespace MvvmLib.Ioc
         /// <typeparam name="T">The service type.</typeparam>
         /// <typeparam name="TClass">The service implementation type.</typeparam>
         public void Bind<T, TClass>()
+            where T : class
             where TClass : class, T
         {
             Bind<T, TClass>(key: null);
@@ -61,6 +64,7 @@ namespace MvvmLib.Ioc
         /// <typeparam name="TClass">The service implementation type.</typeparam>
         /// <param name="key">A key to disambiguate between multiple instances of the same service.</param>
         public void Bind<T, TClass>(string key)
+            where T : class
             where TClass : class, T
         {
             Bind<T, TClass>(key, false);
@@ -76,6 +80,7 @@ namespace MvvmLib.Ioc
         /// service instance will be created for each call to an overload of Resolve.
         /// </param>
         public void Bind<T, TClass>(bool singleInstance)
+            where T : class
             where TClass : class, T
         {
             Bind<T, TClass>(null, singleInstance);
@@ -92,9 +97,10 @@ namespace MvvmLib.Ioc
         /// service instance will be created for each call to an overload of Resolve.
         /// </param>
         public void Bind<T, TClass>(string key, bool singleInstance)
+            where T : class
             where TClass : class, T
         {
-            BindCore(typeof(T), key, Resolve<TClass>, singleInstance);
+            BindCore(typeof(T), key, () => ResolveUnderLock(typeof(TClass), key), singleInstance);
         }
 
         /// <summary>
@@ -144,8 +150,19 @@ namespace MvvmLib.Ioc
                 flags |= RegistrationFlags.SingleInstance;
             }
 
-            // note: replaces any existing bindings.
-            _registrations[new RegistrationKey(type, key)] = new Registration(type, key, provider, flags);
+            var regKey = new RegistrationKey(type, key);
+            var registration = new Registration(type, key, provider, flags);
+
+            _lock.EnterWriteLock();
+            try
+            {
+                // note: replaces any existing bindings.
+                _registrations[regKey] = registration;
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
         }
 
 
@@ -196,6 +213,20 @@ namespace MvvmLib.Ioc
         {
             Contract.RequiresNotNull(type, nameof(type));
 
+            _lock.EnterReadLock();
+            try
+            {
+                return ResolveUnderLock(type, key);
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
+        }
+
+        private object ResolveUnderLock(Type type, string key)
+        {
+            Debug.Assert(_lock.IsReadLockHeld);
             try
             {
                 if (TryResolve(type, key, out Registration registration))
@@ -219,6 +250,8 @@ namespace MvvmLib.Ioc
 
         private bool TryResolve(Type type, string key, out Registration resolved)
         {
+            Debug.Assert(_lock.IsReadLockHeld);
+
             // fast path: the type has a provider registered
             if (_registrations.TryGetValue(new RegistrationKey(type, key), out var reg))
             {
@@ -291,6 +324,7 @@ namespace MvvmLib.Ioc
 
         private bool TryResolveFromParent(Type type, string key, out Registration registration)
         {
+            Debug.Assert(_lock.IsReadLockHeld);
             Debug.Assert(!(_parentContainer is null));
 
             try
@@ -314,9 +348,19 @@ namespace MvvmLib.Ioc
 
         IEnumerable<object> IServiceLocator.GetAllInstances(Type serviceType)
         {
-            return _registrations
-                .Where(kvp => kvp.Key.Type == serviceType)
-                .Select(kvp => kvp.Value.GetValue());
+            _lock.EnterReadLock();
+            try
+            {
+                // note: ToArray so we evaluate the enumeration while still under the lock.
+                return _registrations
+                    .Where(kvp => kvp.Key.Type == serviceType)
+                    .Select(kvp => kvp.Value.GetValue())
+                    .ToArray();
+            }
+            finally
+            {
+                _lock.ExitReadLock();
+            }
         }
 
         IEnumerable<TService> IServiceLocator.GetAllInstances<TService>()
