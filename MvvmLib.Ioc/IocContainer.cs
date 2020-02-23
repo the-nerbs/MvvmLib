@@ -100,7 +100,11 @@ namespace MvvmLib.Ioc
             where T : class
             where TClass : class, T
         {
-            BindCore(typeof(T), key, () => ResolveUnderLock(typeof(TClass), key), singleInstance);
+            BindCore(
+                typeof(T), key,
+                (context) => ResolveUnderLock(typeof(TClass), key, context),
+                singleInstance
+            );
         }
 
         /// <summary>
@@ -111,6 +115,20 @@ namespace MvvmLib.Ioc
         public void Bind<T>(Func<T> factory)
         {
             Bind(null, factory);
+        }
+
+        /// <summary>
+        /// Binds a service type to an object yielded from a factory.
+        /// </summary>
+        /// <typeparam name="T">The service type.</typeparam>
+        /// <param name="factory">A delegate which provides the service object.</param>
+        /// <param name="singleInstance">
+        /// If true, only a single instance of the service will be instantiated. Otherwise the 
+        /// <paramref name="factory"/> will be invoked for each call to an overload of Resolve.
+        /// </param>
+        public void Bind<T>(Func<T> factory, bool singleInstance)
+        {
+            Bind(null, factory, singleInstance);
         }
 
         /// <summary>
@@ -138,10 +156,14 @@ namespace MvvmLib.Ioc
         {
             Contract.RequiresNotNull(factory, nameof(factory));
 
-            BindCore(typeof(T), key, () => factory(), singleInstance);
+            BindCore(
+                typeof(T), key,
+                (context) => factory(),
+                singleInstance
+            );
         }
 
-        private void BindCore(Type type, string key, Func<object> provider, bool singleInstance)
+        private void BindCore(Type type, string key, Func<ResolutionContext, object> provider, bool singleInstance)
         {
             RegistrationFlags flags = RegistrationFlags.None;
 
@@ -216,7 +238,7 @@ namespace MvvmLib.Ioc
             _lock.EnterReadLock();
             try
             {
-                return ResolveUnderLock(type, key);
+                return ResolveUnderLock(type, key, new ResolutionContext());
             }
             finally
             {
@@ -224,14 +246,14 @@ namespace MvvmLib.Ioc
             }
         }
 
-        private object ResolveUnderLock(Type type, string key)
+        private object ResolveUnderLock(Type type, string key, ResolutionContext context)
         {
             Debug.Assert(_lock.IsReadLockHeld);
             try
             {
-                if (TryResolve(type, key, out Registration registration))
+                if (TryResolve(type, key, context, out BoundActivation bound))
                 {
-                    return registration.GetValue();
+                    return bound.CreateObject(context);
                 }
 
                 throw new ActivationException($"Failed to resolve type {type}.");
@@ -248,73 +270,86 @@ namespace MvvmLib.Ioc
             }
         }
 
-        private bool TryResolve(Type type, string key, out Registration resolved)
+        private bool TryResolve(Type type, string key, ResolutionContext context, out BoundActivation resolved)
         {
             Debug.Assert(_lock.IsReadLockHeld);
 
-            // fast path: the type has a provider registered
-            if (_registrations.TryGetValue(new RegistrationKey(type, key), out var reg))
+            var regKey = new RegistrationKey(type, key);
+            if (context.WouldCreateCycle(regKey))
             {
-                resolved = reg;
-                return true;
+                resolved = null;
+                return false;
             }
 
-            // there's nothing registered for the type - see if we can form an implicit
-            // registration based on its constructors and what is registered.
-            ConstructorInfo[] ctors = type.GetConstructors()
-                .OrderByDescending(ci => ci.GetParameters().Length)
-                .ToArray();
-
-            for (int i = 0; i < ctors.Length; i++)
+            using (context.Activating(regKey))
             {
-                ConstructorInfo ctor = ctors[i];
-                ParameterInfo[] pis = ctor.GetParameters();
-                Registration[] parameters = new Registration[pis.Length];
-                bool allBound = true;
-
-                for (int p = 0;
-                    allBound && p < pis.Length;
-                    p++)
+                // fast path: the type has a provider registered
+                if (_registrations.TryGetValue(regKey, out var reg))
                 {
-                    string bindingKey = null;
-                    Registration paramProvider;
-
-                    var bindingKeyAttr = pis[p].GetCustomAttribute<BindingKeyAttribute>();
-                    if (!(bindingKeyAttr is null))
-                    {
-                        bindingKey = bindingKeyAttr.Key;
-                    }
-
-                    if (TryResolve(pis[p].ParameterType, bindingKey, out paramProvider))
-                    {
-                        // exact match with the binding key in this or parent.
-                        parameters[p] = paramProvider;
-                    }
-                    else if (!(bindingKeyAttr is null)
-                        && bindingKeyAttr.FallbackToDefaultBinding
-                        && TryResolve(pis[p].ParameterType, null, out paramProvider))
-                    {
-                        // exact match with the fallback key in this or parent.
-                        parameters[p] = paramProvider;
-                    }
-                    else
-                    {
-                        allBound = false;
-                    }
+                    resolved = new BoundActivation(reg);
+                    return true;
                 }
 
-                if (allBound)
+                // there's nothing registered for the type - see if we can form an implicit
+                // registration based on its constructors and what is registered.
+                ConstructorInfo[] ctors = type.GetConstructors()
+                    .OrderByDescending(ci => ci.GetParameters().Length)
+                    .ToArray();
+
+                for (int i = 0; i < ctors.Length; i++)
                 {
-                    object[] parameterValues = parameters.Select(paramProvider => paramProvider.GetValue()).ToArray();
-                    resolved = new Registration(type, key, () => ctor.Invoke(parameterValues), RegistrationFlags.Implicit);
-                    return true;
+                    ConstructorInfo ctor = ctors[i];
+                    ParameterInfo[] pis = ctor.GetParameters();
+                    BoundActivation[] parameters = new BoundActivation[pis.Length];
+                    bool allBound = true;
+
+                    for (int p = 0;
+                        allBound && p < pis.Length;
+                        p++)
+                    {
+                        string bindingKey = null;
+                        BoundActivation paramProvider;
+
+                        var bindingKeyAttr = pis[p].GetCustomAttribute<BindingKeyAttribute>();
+                        if (!(bindingKeyAttr is null))
+                        {
+                            bindingKey = bindingKeyAttr.Key;
+                        }
+
+                        if (TryResolve(pis[p].ParameterType, bindingKey, context, out paramProvider))
+                        {
+                            // exact match with the binding key in this or parent.
+                            parameters[p] = paramProvider;
+                        }
+                        else if (!(bindingKeyAttr is null)
+                            && bindingKeyAttr.FallbackToDefaultBinding
+                            && TryResolve(pis[p].ParameterType, null, context, out paramProvider))
+                        {
+                            // exact match with the fallback key in this or parent.
+                            parameters[p] = paramProvider;
+                        }
+                        else
+                        {
+                            allBound = false;
+                        }
+                    }
+
+                    if (allBound)
+                    {
+                        var activation = new BoundActivation(ctor, parameters);
+                        if (!activation.ContainsCycle())
+                        {
+                            resolved = activation;
+                            return true;
+                        }
+                    }
                 }
             }
 
             // we failed to bind a constructor here. If we have a parent, then defer to that container.
             if (!(_parentContainer is null))
             {
-                return TryResolveFromParent(type, key, out resolved);
+                return TryResolveFromParent(type, key, context, out resolved);
             }
 
             // no parent, so resolve failed
@@ -322,7 +357,7 @@ namespace MvvmLib.Ioc
             return false;
         }
 
-        private bool TryResolveFromParent(Type type, string key, out Registration registration)
+        private bool TryResolveFromParent(Type type, string key, ResolutionContext context, out BoundActivation registration)
         {
             Debug.Assert(_lock.IsReadLockHeld);
             Debug.Assert(!(_parentContainer is null));
@@ -330,7 +365,8 @@ namespace MvvmLib.Ioc
             try
             {
                 var service = _parentContainer.GetInstance(type, key);
-                registration = new Registration(type, key, () => service, RegistrationFlags.Implicit);
+                var reg = new Registration(type, key, (context) => service, RegistrationFlags.Implicit);
+                registration = new BoundActivation(reg);
                 return true;
             }
             catch (ActivationException)
@@ -354,7 +390,7 @@ namespace MvvmLib.Ioc
                 // note: ToArray so we evaluate the enumeration while still under the lock.
                 return _registrations
                     .Where(kvp => kvp.Key.Type == serviceType)
-                    .Select(kvp => kvp.Value.GetValue())
+                    .Select(kvp => kvp.Value.GetValue(new ResolutionContext()))
                     .ToArray();
             }
             finally
@@ -387,42 +423,6 @@ namespace MvvmLib.Ioc
         TService IServiceLocator.GetInstance<TService>(string key)
         {
             return (TService)((IServiceLocator)this).GetInstance(typeof(TService), key);
-        }
-
-
-        readonly struct RegistrationKey : IEquatable<RegistrationKey>
-        {
-            public Type Type { get; }
-            public string Key { get; }
-
-
-            public RegistrationKey(Type type, string name)
-            {
-                Type = type;
-                Key = name;
-            }
-
-
-            public bool Equals(RegistrationKey other)
-            {
-                return EqualityComparer<Type>.Default.Equals(Type, other.Type)
-                    && StringComparer.Ordinal.Equals(Key, other.Key);
-            }
-
-            public override int GetHashCode()
-            {
-                // numbers generated by visual studio
-                var hashCode = -1979447941;
-
-                hashCode = hashCode * -1521134295 + EqualityComparer<Type>.Default.GetHashCode(Type);
-
-                int nameHash = Key is null
-                    ? 0
-                    : StringComparer.Ordinal.GetHashCode(Key);
-                hashCode = hashCode * -1521134295 + nameHash;
-
-                return hashCode;
-            }
         }
     }
 }

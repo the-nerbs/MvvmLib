@@ -158,12 +158,26 @@ namespace MvvmLib.Tests.Ioc
 
             Assert.IsInstanceOfType(obj, typeof(ConcreteTest));
         }
-        
+
+        [TestMethod]
+        public void TestResolveFromTypeMissingCtorParameterBinding()
+        {
+            var ioc = new IocContainer();
+            ioc.Bind<ITest, ConcreteTest>();
+
+            Assert.ThrowsException<ActivationException>(
+                () => ioc.Resolve<ObjectTakingITestAndITest2>()
+            );
+        }
+
 
         interface ITest
         {
             void Test();
         }
+
+        interface ITest2
+        { }
 
         class ConcreteTest : ITest
         {
@@ -203,6 +217,12 @@ namespace MvvmLib.Tests.Ioc
             {
                 Test = test;
             }
+        }
+
+        class ObjectTakingITestAndITest2
+        {
+            public ObjectTakingITestAndITest2(ITest t1, ITest2 t2)
+            { }
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using System.Threading;
 using CommonServiceLocator;
 
 namespace MvvmLib.Ioc
@@ -44,7 +45,7 @@ namespace MvvmLib.Ioc
         }
 
 
-        public Registration(Type serviceType, string key, Func<object> provider, RegistrationFlags flags)
+        public Registration(Type serviceType, string key, Func<ResolutionContext, object> provider, RegistrationFlags flags)
         {
             Debug.Assert(!(serviceType is null));
 
@@ -63,16 +64,21 @@ namespace MvvmLib.Ioc
         }
 
 
-        public object GetValue()
+        public object GetValue(ResolutionContext context)
         {
             try
             {
                 if (IsSingleInstance)
                 {
-                    return GetSingletonValue();
+                    return GetSingletonValue(context);
                 }
 
-                return DefaultGetValue();
+                return DefaultGetValue(context);
+            }
+            catch (ActivationException)
+            {
+                // throw ActivationExceptions along as-is
+                throw;
             }
             catch (Exception ex)
             {
@@ -89,21 +95,24 @@ namespace MvvmLib.Ioc
             }
         }
 
-        private object GetSingletonValue()
+        private object GetSingletonValue(ResolutionContext context)
         {
             // create the singleton value. Note that Lazy<T> uses thread-safe initialization.
             if (_value is LazyLoader loader)
             {
-                _value = loader.initializer.Value;
+                _value = loader.GetValue(context);
             }
 
             return _value;
         }
 
-        private object DefaultGetValue()
+        private object DefaultGetValue(ResolutionContext context)
         {
-            Debug.Assert(_value is Func<object>);
-            return ((Func<object>)_value)();
+            Debug.Assert(_value is Func<ResolutionContext, object>);
+            using (context.Activating(new RegistrationKey(ServiceType, Key)))
+            {
+                return ((Func<ResolutionContext, object>)_value)(context);
+            }
         }
 
 
@@ -112,13 +121,73 @@ namespace MvvmLib.Ioc
             return ((flags & value) == value);
         }
 
+
         private class LazyLoader
         {
-            public readonly Lazy<object> initializer;
+            const int State_None = 0;
+            const int State_Activating = 1;
+            const int State_Activated = 2;
+            const int State_Failed = 3;
 
-            public LazyLoader(Func<object> provider)
+            private readonly Func<ResolutionContext, object> _provider;
+            private int _state;
+            private object _obj;
+            private Exception _failure;
+
+
+            public LazyLoader(Func<ResolutionContext, object> provider)
             {
-                initializer = new Lazy<object>(provider);
+                Debug.Assert(provider != null);
+
+                _provider = provider;
+                _state = State_None;
+                _obj = null;
+            }
+
+            public object GetValue(ResolutionContext context)
+            {
+                // loop until a terminal state is reached.
+                while (true)
+                {
+                    int result = Interlocked.CompareExchange(ref _state, State_Activating, State_None);
+
+                    switch (result)
+                    {
+                        case State_None:
+                            // we create
+                            try
+                            {
+                                _obj = _provider(context);
+                                _state = State_Activated;
+                            }
+                            catch (Exception ex)
+                            {
+                                _failure = ex;
+                                _state = State_Failed;
+                            }
+                            break;
+
+                        case State_Activating:
+                            // someone else is creating, so wait
+                            if (!SpinWait.SpinUntil(
+                                () => Volatile.Read(ref _state) != State_Activating,
+                                TimeSpan.FromSeconds(5)))
+                            {
+                                _failure = new TimeoutException($"Timeout while waiting for singleton ");
+                                _state = State_Failed;
+                            }
+                            break;
+
+                        case State_Activated:
+                            return _obj;
+
+                        case State_Failed:
+                            throw new ActivationException("Activation failed.", _failure);
+
+                        default:
+                            throw Contract.UnreachableCode("unexpected state");
+                    }
+                }
             }
         }
     }
