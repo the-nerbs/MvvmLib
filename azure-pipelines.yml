@@ -14,7 +14,7 @@ variables:
   buildPlatform: 'Any CPU'
   versionBase: '1.0.0'
   build: $[counter(variables.versionBase, 1)]
-  version: format('{0}.{1}', variables.versionBase, variables.build)
+  version: $[format('{0}.{1}', variables.versionBase, variables.build)]
 
 steps:
 - task: NuGetToolInstaller@1
