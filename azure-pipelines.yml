@@ -1,0 +1,74 @@
+# .NET Desktop
+# Build and run tests for .NET Desktop or Windows classic desktop solutions.
+# Add steps that publish symbols, save build artifacts, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/apps/windows/dot-net
+
+trigger:
+- master
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  versionBase: '1.0.0'
+  build: $[counter(variables.versionBase, 1)]
+  version: $[format('{0}.{1}', variables.versionBase, variables.build)]
+
+steps:
+- task: NuGetToolInstaller@1
+
+- task: NuGetCommand@2
+  inputs:
+    restoreSolution: '$(solution)'
+
+- task: MSBuild@1
+  inputs:
+    solution: '$(solution)'
+    platform: '$(buildPlatform)'
+    configuration: 'Debug'
+    msbuildArguments: '/p:Version="$(version)-debug"'
+
+- task: MSBuild@1
+  inputs:
+    solution: '$(solution)'
+    platform: '$(buildPlatform)'
+    configuration: 'Release'
+    msbuildArguments: '/p:Version="$(version)"'
+
+- task: VSTest@2
+  inputs:
+    testSelector: 'testAssemblies'
+    testAssemblyVer2: 'artifacts\bin\Debug\**\*Tests.dll'
+    searchFolder: '$(System.DefaultWorkingDirectory)'
+    runSettingsFile: 'Test.runsettings'
+    platform: '$(buildPlatform)'
+    configuration: 'Debug'
+
+- task: VSTest@2
+  inputs:
+    testSelector: 'testAssemblies'
+    testAssemblyVer2: 'artifacts\bin\Release\**\*Tests.dll'
+    searchFolder: '$(System.DefaultWorkingDirectory)'
+    runSettingsFile: 'Test.runsettings'
+    platform: '$(buildPlatform)'
+    configuration: 'Release'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'artifacts\bin\Debug'
+    ArtifactName: 'debug'
+    publishLocation: 'Container'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'artifacts\bin\Release'
+    ArtifactName: 'release'
+    publishLocation: 'Container'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'artifacts\package'
+    ArtifactName: 'packages'
+    publishLocation: 'Container'
