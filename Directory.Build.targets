@@ -2,6 +2,12 @@
   <Import Project="$([MSBuild]::NormalizePath('$(BuildToolsDir)', 'GenerateInternalsVisibleTo.targets'))"/>
 
   <PropertyGroup>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    
+    <!-- generate nuget packages from packable projects -->
     <GeneratePackageOnBuild Condition="'$(IsPackable)' != 'false'">true</GeneratePackageOnBuild>
+
+    <!-- only generate nuget packages from release builds -->
+    <GeneratePackageOnBuild Condition="'$(Configuration)' != 'Release'">false</GeneratePackageOnBuild>
   </PropertyGroup>
 </Project>

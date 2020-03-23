@@ -2,9 +2,9 @@
   <PropertyGroup>
     <Authors>the-nerbs</Authors>
     <Company>the-nerbs</Company>
-    <Copyright>Copyright (c) the-nerbs 2019</Copyright>
+    <Copyright>Copyright (c) the-nerbs 2020</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageTags>dotnet;c#;wpf;mvvm</PackageTags>
+    <PackageTags>dotnet;c#;wpf;mvvm;ioc</PackageTags>
     <PackageProjectUrl>https://github.com/the-nerbs/MvvmLib</PackageProjectUrl>
   </PropertyGroup>
 </Project>

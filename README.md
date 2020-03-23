@@ -34,3 +34,8 @@ synchronizing or waiting for async-void command implementations to complete.
 All of the features of this library are available in a standalone package that has no dependencies
 called `MvvmLib`.  Along with this is the package `MvvmLib.MvvmLight` which provides
 nearly-identical types that instead use the `MvvmLight` types.
+
+### IOC Container
+
+An IOC container is provided as an optional component through the `MvvmLib.Ioc` package. The 
+`IocContainer` class implements the `IServiceLocator` interface from `CommonServiceLocator`.
