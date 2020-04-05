@@ -16,7 +16,7 @@ namespace MvvmLib.Ioc
         private readonly Dictionary<RegistrationKey, Registration> _registrations = new Dictionary<RegistrationKey, Registration>();
 
         private readonly IServiceLocator _parentContainer;
-        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+        private readonly ReaderWriterLockSlim _lock;
 
 
         /// <summary>
@@ -27,6 +27,57 @@ namespace MvvmLib.Ioc
         { }
 
         /// <summary>
+        /// Initializes a new instance of <see cref="IocContainer"/>.
+        /// </summary>
+        /// <param name="allowRecursiveResolution">
+        /// If true, recursive calls to Resolve or GetInstance overloads will be allowed.
+        /// </param>
+        /// <remarks>
+        /// Recursive activations may cause a <see cref="StackOverflowException"/> if it
+        /// triggers resolution of co-dependent types.
+        /// 
+        /// Care must be taken when enabling this feature. Consider the code:
+        /// <code>
+        /// class ExampleA : IExampleA
+        /// {
+        ///     private IExampleB b;
+        ///     
+        ///     public ExampleA(IServiceLocator ioc)
+        ///     {
+        ///         b = ioc.GetInstance&lt;IExampleB&gt;();
+        ///     }
+        /// }
+        /// 
+        /// class ExampleB : IExampleB
+        /// {
+        ///     private IExampleA a;
+        ///     
+        ///     public ExampleB(IServiceLocator ioc)
+        ///     {
+        ///         a = ioc.GetInstance&lt;IExampleA&gt;();
+        ///     }
+        /// }
+        /// 
+        /// void Main()
+        /// {
+        ///     var ioc = new IocContainer(<paramref name="allowRecursiveResolution"/>: false);
+        ///     ioc.Bind&lt;IServiceLocator&gt;(() =&gt; ioc);
+        ///     ioc.Bind&lt;IExampleA, ExampleA&gt;();
+        ///     ioc.Bind&lt;IExampleB, ExampleB&gt;();
+        ///     
+        ///     IExampleA a = ioc.Resolve&lt;IExampleA&gt;();
+        /// }
+        /// </code>
+        /// 
+        /// If <paramref name="allowRecursiveResolution"/> were true, an uncatchable
+        /// <see cref="StackOverflowException"/> would be raised because both ExampleA and
+        /// ExampleB try to resolve each other from their constructors.
+        /// </remarks>
+        public IocContainer(bool allowRecursiveResolution)
+            : this(null, allowRecursiveResolution)
+        { }
+
+        /// <summary>
         /// Initializes a new instance of <see cref="IocContainer"/> with a parent.
         /// </summary>
         /// <param name="parent">The parent container.</param>
@@ -34,8 +85,68 @@ namespace MvvmLib.Ioc
         /// If a service cannot be found in this container, the parent is checked.
         /// </remarks>
         public IocContainer(IServiceLocator parent)
+            : this(parent, false)
+        { }
+
+        /// <summary>
+        /// Initializes a new instance of <see cref="IocContainer"/> with a parent.
+        /// </summary>
+        /// <param name="parent">The parent container.</param>
+        /// <param name="allowRecursiveResolution">
+        /// If true, recursive calls to Resolve or GetInstance overloads will be allowed.
+        /// </param>
+        /// <remarks>
+        /// If a service cannot be found in this container, the parent is checked.
+        /// 
+        /// Recursive activations may cause a <see cref="StackOverflowException"/> if it
+        /// triggers resolution of co-dependent types.
+        /// 
+        /// Care must be taken when enabling this feature. Consider the code:
+        /// <code>
+        /// class ExampleA : IExampleA
+        /// {
+        ///     private IExampleB b;
+        ///     
+        ///     public ExampleA(IServiceLocator ioc)
+        ///     {
+        ///         b = ioc.GetInstance&lt;IExampleB&gt;();
+        ///     }
+        /// }
+        /// 
+        /// class ExampleB : IExampleB
+        /// {
+        ///     private IExampleA a;
+        ///     
+        ///     public ExampleB(IServiceLocator ioc)
+        ///     {
+        ///         a = ioc.GetInstance&lt;IExampleA&gt;();
+        ///     }
+        /// }
+        /// 
+        /// void Main()
+        /// {
+        ///     var ioc = new IocContainer(<paramref name="allowRecursiveResolution"/>: false);
+        ///     ioc.Bind&lt;IServiceLocator&gt;(() =&gt; ioc);
+        ///     ioc.Bind&lt;IExampleA, ExampleA&gt;();
+        ///     ioc.Bind&lt;IExampleB, ExampleB&gt;();
+        ///     
+        ///     IExampleA a = ioc.Resolve&lt;IExampleA&gt;();
+        /// }
+        /// </code>
+        /// 
+        /// If <paramref name="allowRecursiveResolution"/> were true, an uncatchable
+        /// <see cref="StackOverflowException"/> would be raised because both ExampleA and
+        /// ExampleB try to resolve each other from their constructors.
+        /// </remarks>
+        public IocContainer(IServiceLocator parent, bool allowRecursiveResolution)
         {
             _parentContainer = parent;
+
+            LockRecursionPolicy recursionPolicy = allowRecursiveResolution
+                ? LockRecursionPolicy.SupportsRecursion
+                : LockRecursionPolicy.NoRecursion;
+
+            _lock = new ReaderWriterLockSlim(recursionPolicy);
         }
 
 
@@ -235,7 +346,21 @@ namespace MvvmLib.Ioc
         {
             Contract.RequiresNotNull(type, nameof(type));
 
-            _lock.EnterReadLock();
+            try
+            {
+                // note: TryEnterReadLock still throws for recursive lock
+                // calls if the lock doesn't support it.
+                _lock.EnterReadLock();
+            }
+            catch (LockRecursionException)
+            {
+                throw new ActivationException(
+                    "Attempted to recursively resolve an object from this container. If all "
+                    + $"{nameof(Resolve)} calls are known to be acyclic, then try constructing"
+                    + $"the {nameof(IocContainer)} with allowRecursiveResolution set to true."
+                );
+            }
+
             try
             {
                 return ResolveUnderLock(type, key, new ResolutionContext());
