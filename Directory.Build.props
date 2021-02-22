@@ -8,6 +8,8 @@
 
     <IsTestProject>false</IsTestProject>
     <IsTestProject Condition="$(MSBuildProjectName.EndsWith('.UnitTests')) or $(MSBuildProjectName.EndsWith('.Tests'))">true</IsTestProject>
+
+    <Version Condition="'$(Version)' == ''">1.0.1</Version>
   </PropertyGroup>
 
   <Import Project="$([MSBuild]::NormalizePath('$(BuildToolsDir)', 'dir.props'))"/>

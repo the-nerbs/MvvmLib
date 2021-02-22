@@ -20,7 +20,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MvvmLib.Tests", "MvvmLib.Te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MvvmLib.MvvmLight.Tests", "MvvmLib.MvvmLight.Tests\MvvmLib.MvvmLight.Tests.csproj", "{A650AE21-B3B6-47A1-8FEA-42EFE5CB35EC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MvvmLib.Ioc", "MvvmLib.Ioc\MvvmLib.Ioc.csproj", "{AF0D78FE-B642-4F74-83B6-923508C7CD94}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MvvmLib.Ioc", "MvvmLib.Ioc\MvvmLib.Ioc.csproj", "{AF0D78FE-B642-4F74-83B6-923508C7CD94}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
