@@ -7,11 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CommonServiceLocator" Version="2.0.2" />
+    <Compile Include="..\MvvmLib.Core\Contract.cs" Link="Contract.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MvvmLib.Core\MvvmLib.Core.csproj" />
+    <PackageReference Include="CommonServiceLocator" Version="2.0.2" />
   </ItemGroup>
 
 </Project>

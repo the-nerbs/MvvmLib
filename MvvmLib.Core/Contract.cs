@@ -16,7 +16,10 @@ namespace MvvmLib
     /// Since this does not use the rewrite tool, the post-conditions API is not available.
     /// </summary>
     [ExcludeFromCodeCoverage] // copy-pasted class
-    public static class Contract
+#if CONTRACTS_PUBLIC
+    public
+#endif
+    static class Contract
     {
         /// <summary>
         /// Indicates a pre-condition on the given value not being null/

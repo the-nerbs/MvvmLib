@@ -150,6 +150,28 @@ namespace MvvmLib.Ioc
         }
 
 
+        /// <summary>
+        /// Binds a configuration object for options type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">The options type.</typeparam>
+        /// <param name="options">The options values.</param>
+        public void Configure<T>(T options)
+        {
+            Bind<IConfiguration<T>>(() => new SimpleConfiguration<T>(options), singleInstance: true);
+        }
+
+        /// <summary>
+        /// Binds a configuration object for options type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">The options type.</typeparam>
+        /// <param name="key">A key to disambiguate between multiple instances of the same service.</param>
+        /// <param name="options">The options values.</param>
+        public void Configure<T>(string key, T options)
+        {
+            Bind<IConfiguration<T>>(key, () => new SimpleConfiguration<T>(options), singleInstance: true);
+        }
+
+
         // Note: preferred parameter order for Bind methods here is:
         //  1. Binding key
         //  2. Object factory
