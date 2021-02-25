@@ -28,14 +28,14 @@ steps:
     solution: '$(solution)'
     platform: '$(buildPlatform)'
     configuration: 'Debug'
-    msbuildArguments: '/p:Version="$(version)-debug"'
+    msbuildArguments: '/p:Version="$(version)-debug" /p:ContinuousIntegrationBuild="true"'
 
 - task: MSBuild@1
   inputs:
     solution: '$(solution)'
     platform: '$(buildPlatform)'
     configuration: 'Release'
-    msbuildArguments: '/p:Version="$(version)"'
+    msbuildArguments: '/p:Version="$(version)" /p:ContinuousIntegrationBuild="true"'
 
 - task: VSTest@2
   inputs:
