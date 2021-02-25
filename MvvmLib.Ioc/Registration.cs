@@ -85,7 +85,7 @@ namespace MvvmLib.Ioc
                 string message;
                 if (!(Key is null))
                 {
-                    message = string.Format(Constants.ActivationExceptionMessage, ServiceType, Key);
+                    message = $"Activation error occurred while trying to get instance of type {ServiceType.Name}, key \"{Key}\"";
                 }
                 else
                 {
