@@ -55,7 +55,7 @@ namespace MvvmLib
 
         bool ICommand.CanExecute(object parameter)
         {
-            return CanExecute((T)parameter);
+            return CanExecute((T)Convert.ChangeType(parameter, typeof(T)));
         }
 
 
@@ -70,7 +70,7 @@ namespace MvvmLib
 
         void ICommand.Execute(object parameter)
         {
-            Execute((T)parameter);
+            Execute((T)Convert.ChangeType(parameter, typeof(T)));
         }
 
 

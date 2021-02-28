@@ -116,12 +116,12 @@ namespace MvvmLib
 
         bool ICommand.CanExecute(object parameter)
         {
-            return CanExecute((TParameter)parameter);
+            return CanExecute((TParameter)Convert.ChangeType(parameter, typeof(TParameter)));
         }
 
         void ICommand.Execute(object parameter)
         {
-            Execute((TParameter)parameter);
+            Execute((TParameter)Convert.ChangeType(parameter, typeof(TParameter)));
         }
 
         Task IAsyncCommand.ExecuteAsync(object parameter)

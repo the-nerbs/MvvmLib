@@ -74,6 +74,26 @@ namespace MvvmLib.Tests
         }
 
         [TestMethod]
+        public void TestExplicitCanExecuteCompatibleTypeUnconvertibleValue()
+        {
+            int canExecuteRunCount = 0;
+            Func<int, bool> canExecute = (x) =>
+            {
+                canExecuteRunCount++;
+                return true;
+            };
+
+            ICommand cmd = new AsyncRelayCommand<int>((x) => Task.CompletedTask, canExecute);
+
+            // exact exception will depend on the conversion
+            Assert.ThrowsException<FormatException>(
+                () => cmd.CanExecute("")
+            );
+
+            Assert.AreEqual(0, canExecuteRunCount);
+        }
+
+        [TestMethod]
         public void TestExplicitCanExecuteWrongType()
         {
             int canExecuteRunCount = 0;
@@ -85,8 +105,9 @@ namespace MvvmLib.Tests
 
             ICommand cmd = new AsyncRelayCommand<int>((x) => Task.CompletedTask, canExecute);
 
+            // exact exception will depend on the conversion
             Assert.ThrowsException<InvalidCastException>(
-                () => cmd.CanExecute("")
+                () => cmd.CanExecute(new IncompatibleType())
             );
 
             Assert.AreEqual(0, canExecuteRunCount);
@@ -157,6 +178,27 @@ namespace MvvmLib.Tests
         }
 
         [TestMethod]
+        public void TestExplicitExecuteCompatibleTypeBadValue()
+        {
+            int executeRunCount = 0;
+
+            Func<int, Task> execute = (x) =>
+            {
+                executeRunCount++;
+                return Task.CompletedTask;
+            };
+
+            ICommand cmd = new AsyncRelayCommand<int>(execute);
+
+            // exact exception will depend on the conversion
+            Assert.ThrowsException<FormatException>(
+                () => cmd.Execute("")
+            );
+
+            Assert.AreEqual(0, executeRunCount);
+        }
+
+        [TestMethod]
         public void TestExplicitExecuteWrongType()
         {
             int executeRunCount = 0;
@@ -169,8 +211,9 @@ namespace MvvmLib.Tests
 
             ICommand cmd = new AsyncRelayCommand<int>(execute);
 
+            // exact exception will depend on the conversion
             Assert.ThrowsException<InvalidCastException>(
-                () => cmd.Execute("")
+                () => cmd.Execute(new IncompatibleType())
             );
 
             Assert.AreEqual(0, executeRunCount);
@@ -288,6 +331,12 @@ namespace MvvmLib.Tests
 
             // "assert" that this does not throw
             cmd.RaiseCanExecuteChanged();
+        }
+
+
+        struct IncompatibleType
+        {
+
         }
     }
 }

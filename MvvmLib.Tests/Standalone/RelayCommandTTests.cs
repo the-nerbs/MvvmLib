@@ -77,7 +77,25 @@ namespace MvvmLib.Tests.Standalone
 
             ICommand icmd = cmd;
 
+            // exact exception will depend on the conversion
             Assert.ThrowsException<InvalidCastException>(
+                () => icmd.Execute(new IncompatibleType())
+            );
+
+            Assert.AreEqual(0, callCount);
+        }
+
+        [TestMethod]
+        public void TestICommandExecuteThrowsOnCompatibleTypeBadValue()
+        {
+            int callCount = 0;
+            Action<int> execute = x => callCount++;
+            var cmd = new RelayCommand<int>(execute);
+
+            ICommand icmd = cmd;
+
+            // exact exception will depend on the conversion
+            Assert.ThrowsException<FormatException>(
                 () => icmd.Execute("not an int")
             );
 
@@ -143,7 +161,30 @@ namespace MvvmLib.Tests.Standalone
 
             ICommand icmd = cmd;
 
+            // exact exception will depend on the conversion
             Assert.ThrowsException<InvalidCastException>(
+                () => icmd.CanExecute(new IncompatibleType())
+            );
+
+            Assert.AreEqual(0, callCount);
+        }
+
+        [TestMethod]
+        public void TestICommandCanExecuteThrowsOnCompatibleTypeBadValue()
+        {
+            int callCount = 0;
+            Func<int, bool> canExecute = x =>
+            {
+                callCount++;
+                return true;
+            };
+
+            var cmd = new RelayCommand<int>(x => { }, canExecute);
+
+            ICommand icmd = cmd;
+
+            // exact exception will depend on the conversion
+            Assert.ThrowsException<FormatException>(
                 () => icmd.CanExecute("not an int")
             );
 
@@ -178,5 +219,9 @@ namespace MvvmLib.Tests.Standalone
             // assert that this does not throw
             cmd.RaiseCanExecuteChanged();
         }
+
+
+        private struct IncompatibleType
+        { }
     }
 }
